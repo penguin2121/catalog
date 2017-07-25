@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ item.name }} | {{ category.name }} | Catalog App</title>
+</head>
+<body>
+    <h1>Catalog App</h1>
+    <div id="item_description">
+        <h2>{{ category.name }}</h2>
+        <h3>{{ item.name }}</h3>
+        <p>{{ item.description }}</p>
+        <br><br>
+        <a href="{{ url_for('editItemDetails', category_name=category.name, item_name=item.name) }}">Edit</a>
+        <a href="{{ url_for('deleteItem', category_name=category.name, item_name=item.name) }}">Delete</a>
+        <a href="{{ url_for('displayItemsInCategory', category_name=category.name) }}">Return</a>
+    </div>
+</body>
+</html>

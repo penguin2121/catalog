@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit {{ item.name }} Item | Catalog App</title>
+</head>
+<body>
+    <h1>Catalog App</h1>
+    <h2>Edit the {{ item.name }} item in the {{ category.name }} Category</h2>
+    <form action="{{ url_for('editItemDetails',category_name = category.name, item_name=item.name)}}" method="post">
+        <label>Name:<br><input type="text" size="30" name="name" value="{{item.name}} " required="required"></label>
+        <br><br>
+        <label>Description:<br><textarea cols="50" rows="5" name="description" placeholder="{{item.description}}"></textarea></label>
+        <br><br>
+        <input type="submit" value="Edit">
+    </form>
+    <br>
+    <a href = "{{ url_for('displayItemsInCategory', category_name=category.name ) }}"> Cancel </a>
+</body>
+</html>

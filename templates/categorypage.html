@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ category.name }} | Catalog App</title>
+</head>
+<body>
+    <h1>Catalog App</h1>
+    <div id="category_list">
+        <h2>Categories</h2>
+        {% for each_category in category_list %}
+            <a href="{{ url_for('displayItemsInCategory', category_name=each_category.name)}}">{{each_category.name}}</a>
+            <br>
+        {% endfor %}
+    </div>
+    <div id="item_list">
+        <h2>{{ category.name }} Items</h2>
+        <a href="{{ url_for('createNewItem', category_name=category.name) }}">Add New Item</a><br><br>
+        {% for item in items %}
+            <a href="{{ url_for('displayItemDetails', category_name=category.name, item_name=item.name)}}">{{item.name}}</a>
+            <br>
+        {% endfor %}
+    </div>
+</body>
+</html>

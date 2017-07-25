@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home | Catalog App</title>
+</head>
+<body>
+    <h1>Catalog App</h1>
+    <div id="category_list">
+        <h2>Categories</h2>
+        {% for each_category in categories %}
+             <a href="{{ url_for('displayItemsInCategory', category_name=each_category.name)}}">{{each_category.name}}</a>
+            <br>
+        {% endfor %}
+    </div>
+    <div id="newest_items_list">
+        <h2>Newest Items</h2>
+        {% for item in items %}
+            <a href="{{ url_for('displayItemDetails', category_name=item.category.name, item_name=item.name)}}">{{item.name}}</a>
+            <br>
+        {% endfor %}
+    </div>
+</body>
+</html>
