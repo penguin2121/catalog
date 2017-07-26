@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Delete {{ item.name }} Item | Catalog App</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <h1>Catalog App</h1>
+    {% if user_id != None %}
+        <a href="{{ url_for('gdisconnect') }}">Logout</a><br>
+    {% else %}
+        <a href="{{ url_for('login') }}">Login</a><br>
+    {% endif %}
     <h2>Are you sure you want to delete {{item.name}} {{category.name.lower()}}?</h2>
     <form action="{{ url_for('deleteItem',category_name = category.name, item_name=item.name)}}" method = 'post'>
         <input type='submit', value = 'Delete'>

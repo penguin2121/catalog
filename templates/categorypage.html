@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ category.name }} | Catalog App</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <h1>Catalog App</h1>
+    {% if user_id != None %}
+        <a href="{{ url_for('gdisconnect') }}">Logout</a><br>
+    {% else %}
+        <a href="{{ url_for('login') }}">Login</a><br>
+    {% endif %}
     <div id="category_list">
         <h2>Categories</h2>
         {% for each_category in category_list %}
@@ -15,7 +21,11 @@
     </div>
     <div id="item_list">
         <h2>{{ category.name }} Items</h2>
-        <a href="{{ url_for('createNewItem', category_name=category.name) }}">Add New Item</a><br><br>
+        {% if user_id != None %}
+            <a href="{{ url_for('createNewItem', category_name=category.name) }}">Add New Item</a><br><br>
+        {% else %}
+            <p>Login to Add Items</p>
+        {% endif %}
         {% for item in items %}
             <a href="{{ url_for('displayItemDetails', category_name=category.name, item_name=item.name)}}">{{item.name}}</a>
             <br>

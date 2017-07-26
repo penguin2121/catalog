@@ -6,14 +6,23 @@
 </head>
 <body>
     <h1>Catalog App</h1>
+    {% if user_id != None %}
+        <a href="{{ url_for('gdisconnect') }}">Logout</a><br>
+    {% else %}
+        <a href="{{ url_for('login') }}">Login</a><br>
+    {% endif %}
     <div id="item_description">
         <h2>{{ category.name }}</h2>
         <h3>{{ item.name }}</h3>
         <p>{{ item.description }}</p>
         <br><br>
-        <a href="{{ url_for('editItemDetails', category_name=category.name, item_name=item.name) }}">Edit</a>
-        <a href="{{ url_for('deleteItem', category_name=category.name, item_name=item.name) }}">Delete</a>
-        <a href="{{ url_for('displayItemsInCategory', category_name=category.name) }}">Return</a>
+        {% if user_id == item.user_id %}
+            <a href="{{ url_for('editItemDetails', category_name=category.name, item_name=item.name) }}">Edit</a>
+            <a href="{{ url_for('deleteItem', category_name=category.name, item_name=item.name) }}">Delete</a><br>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login to the Item Owner's Account to Edit or Delete this Item</a><br>
+        {% endif %}
+        <br><a href="{{ url_for('displayItemsInCategory', category_name=category.name) }}">Return</a>
     </div>
 </body>
 </html>
