@@ -27,6 +27,10 @@ APPLICATION_NAME = "Web client 1"
 @app.route('/catalog/<string:category_name>/JSON')
 @app.route('/catalog/<string:category_name>/items/JSON')
 def jsonCatalog(category_name):
+    """
+    This returns a JSON object containing the information about
+    every item in a category.
+    """
     category_name = string.capwords(category_name)
     animal = session.query(Category).filter_by(name=category_name).one()
     items = session.query(Item).filter_by(category=animal).all()
@@ -36,6 +40,9 @@ def jsonCatalog(category_name):
 # This loads the JSON endpoints for individual items
 @app.route('/catalog/<string:category_name>/<string:item_name>/JSON')
 def jsonItem(category_name, item_name):
+    """
+    This returns a JSON object containing the information for a specific item.
+    """
     category_name = string.capwords(category_name)
     item_name = string.capwords(item_name)
     animal = session.query(Category).filter_by(name=category_name).one()
@@ -47,6 +54,10 @@ def jsonItem(category_name, item_name):
 @app.route('/catalog/')
 @app.route('/')
 def home():
+    """
+    This displays the home screen.  If the user is logged in, they have the
+    option to log out.  (This log in/log out option is available on all pages).
+    """
     animals = session.query(Category).all()
     newest_items = session.query(Item).order_by(desc(Item.time))\
         .limit(5).all()
@@ -62,6 +73,10 @@ def home():
 @app.route('/catalog/<string:category_name>/')
 @app.route('/catalog/<string:category_name>/items/')
 def displayItemsInCategory(category_name):
+    """
+    This displays the items in a category.  If user_id is entered, the
+    option to create an item will be displayed.
+    """
     category_name = string.capwords(category_name)
     animals = session.query(Category).all()
     animal = session.query(Category).filter_by(name=category_name).one()
@@ -77,19 +92,28 @@ def displayItemsInCategory(category_name):
 # This allows you to add items in a category if you are logged in.
 @app.route('/catalog/<string:category_name>/add/', methods=['POST', 'GET'])
 def createNewItem(category_name):
+    """
+    This loads the user create item page on a get request, as long as the user
+    is logged in.  If the user is logged in while a POST request is sent,
+    a new item is added to the database with the owner set to the logged in
+    user.
+    """
     category_name = string.capwords(category_name)
     animal = session.query(Category).filter_by(name=category_name).one()
     if request.method == 'POST':
-        if request.form['name']:
-            new_item = Item(name=string.capwords(request.form['name']),
-                            description=request.form['description'],
-                            category=animal, user_id=login_session['user_id'])
-            session.add(new_item)
-            session.commit()
-            return redirect(url_for('displayItemsInCategory',
-                                    category_name=animal.name))
+        if 'user_id' in login_session.keys():
+            if request.form['name']:
+                new_item = Item(name=string.capwords(request.form['name']),
+                                description=request.form['description'],
+                                category=animal, user_id=login_session['user_id'])
+                session.add(new_item)
+                session.commit()
+                return redirect(url_for('displayItemsInCategory',
+                                        category_name=animal.name))
+            else:
+                return "ERROR: You need to enter an item name in the form."
         else:
-            return "ERROR: You need to enter an item name in the form."
+            return "ERROR: You need to login to add an item."
     else:
         if 'user_id' not in login_session.keys():
             return redirect(url_for('login'))
@@ -102,6 +126,11 @@ def createNewItem(category_name):
 # This lets you see the details of an item.
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
 def displayItemDetails(category_name, item_name):
+    """
+    This displays the details of an item.  The user_id is passed into the html
+    template because it is used to display the edit/delete buttons if the user
+    is logged into the account owning the item.
+    """
     category_name = string.capwords(category_name)
     item_name = string.capwords(item_name)
     animal = session.query(Category).filter_by(name=category_name).one()
@@ -119,20 +148,28 @@ def displayItemDetails(category_name, item_name):
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
            methods=['POST', 'GET'])
 def editItemDetails(category_name, item_name):
+    """
+    This handles opens the edit item html page when a GET request is received
+    and the user_id matches the item's user_id looking to be edit.  If a POST
+    request is sent, after verification that the user id exists and matches the
+    item's, the item is edited in the database.
+    """
     category_name = string.capwords(category_name)
     item_name = string.capwords(item_name)
     animal = session.query(Category).filter_by(name=category_name).one()
     item = session.query(Item).filter_by(name=item_name, category=animal).one()
     if request.method == 'POST':
-        if request.form['name']:
-            item.name = string.capwords(request.form['name'])
-        if request.form['description']:
-            item.description = request.form['description']
-        session.add(item)
-        session.commit()
-        return redirect(url_for('displayItemDetails',
-                                category_name=animal.name,
-                                item_name=item.name))
+        if (('user_id' in login_session.keys()) and
+                (login_session['user_id'] == item.user_id)):
+            if request.form['name']:
+                item.name = string.capwords(request.form['name'])
+            if request.form['description']:
+                item.description = request.form['description']
+            session.add(item)
+            session.commit()
+            return redirect(url_for('displayItemDetails',
+                                    category_name=animal.name,
+                                    item_name=item.name))
     else:
         if 'user_id' not in login_session.keys():
             return redirect(url_for('login'))
@@ -149,15 +186,23 @@ def editItemDetails(category_name, item_name):
 @app.route('/catalog/<string:category_name>/<string:item_name>/delete/',
            methods=['POST', 'GET'])
 def deleteItem(category_name, item_name):
+    """
+    This handler opens the delete item html page when a GET request is received
+    and the id matches the item looking to be delted.  If a POST request is
+    sent, after verification that the user id exists and matches the item's,
+    the item is deleted from the database.
+    """
     category_name = string.capwords(category_name)
     item_name = string.capwords(item_name)
     animal = session.query(Category).filter_by(name=category_name).one()
     item = session.query(Item).filter_by(name=item_name, category=animal).one()
     if request.method == 'POST':
-        session.delete(item)
-        session.commit()
-        return redirect(url_for('displayItemsInCategory',
-                                category_name=animal.name))
+        if (('user_id' in login_session.keys()) and
+                (login_session['user_id'] == item.user_id)):
+            session.delete(item)
+            session.commit()
+            return redirect(url_for('displayItemsInCategory',
+                                    category_name=animal.name))
     else:
         if 'user_id' not in login_session.keys():
             return redirect(url_for('login'))
@@ -172,6 +217,11 @@ def deleteItem(category_name, item_name):
 # This loads the login page.
 @app.route('/login/')
 def login():
+    """
+    Creates a random state to verify the user is  who they say
+    they are throughout the login process. Allows the user to
+    login via a Google sign in button.
+    """
     state = ''.join(random.choice(string.ascii_uppercase + string.digits) for
                     x in range(32))
     login_session['state'] = state
@@ -181,6 +231,10 @@ def login():
 # This logs the user in and then redirects them to the home page.
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
+    """
+    Gathers data from Google Sign In API and places it inside a session
+    variable named loging_session.
+    """
     # Validate state token
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
@@ -258,36 +312,25 @@ def gconnect():
         user_id = createUser(login_session)
     login_session['user_id'] = user_id
 
-    output = ''
-    output += '<h1>Welcome, '
-    output += login_session['username']
-    output += '!</h1>'
-    output += '<img src="'
-    output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: ' \
-              '150px;-webkit-border-radius: 150px;-moz-border-radius:150px;">'
-    print "done!"
-    return output
-
 
 # This lets the user log out.
 @app.route('/gdisconnect')
 def gdisconnect():
+    """
+    Allows the user to disconnect from their login.
+    This code deletes all copies of the login_session data from the server.
+    When logged out, the user is redirected back to the home screen.
+    """
     access_token = login_session.get('access_token')
     if access_token is None:
         print 'Access Token is None'
         response = make_response(json.dumps('User not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    print 'In gdisconnect access token is %s', access_token
-    print 'User name is: '
-    print login_session['username']
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' \
           % login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
-    print 'result is '
-    print result
     if result['status'] == '200':
         del login_session['access_token']
         del login_session['gplus_id']
@@ -305,6 +348,9 @@ def gdisconnect():
 
 
 def getUserID(email):
+    """
+    This function returns a users ID given their email address.
+    """
     try:
         user = session.query(User).filter_by(email=email).one()
         return user.id
@@ -313,11 +359,17 @@ def getUserID(email):
 
 
 def getUserInfo(user_id):
+    """
+    This returns a user given a user_id.
+    """
     user = session.query(User).filter_by(id=user_id).one()
     return user
 
 
 def createUser(login_session):
+    """
+    This creates a new user in the database given the login_session information
+    """
     newUser = User(name=login_session['username'],
                    email=login_session['email'],
                    picture=login_session['picture'])
