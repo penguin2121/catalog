@@ -3,11 +3,12 @@ import string
 import httplib2
 import json
 import requests
+from functools import wraps
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, User, Category, Item
 from flask import Flask, render_template, request, redirect
-from flask import url_for, make_response, jsonify
+from flask import url_for, make_response, jsonify, flash
 from flask import session as login_session
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
@@ -22,6 +23,21 @@ session = DBSession()
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "Web client 1"
+
+
+def login_required(f):
+    """
+    This checks to see if a user is logged in before allowing a user to view
+    a page when used as a decorator.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in login_session.keys():
+            flash("You Must Login In Order to Perform that Action")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 # This loads the JSON endpoints for all of the items in a category
 @app.route('/catalog/<string:category_name>/JSON')
@@ -91,6 +107,7 @@ def displayItemsInCategory(category_name):
 
 # This allows you to add items in a category if you are logged in.
 @app.route('/catalog/<string:category_name>/add/', methods=['POST', 'GET'])
+@login_required
 def createNewItem(category_name):
     """
     This loads the user create item page on a get request, as long as the user
@@ -101,26 +118,20 @@ def createNewItem(category_name):
     category_name = string.capwords(category_name)
     animal = session.query(Category).filter_by(name=category_name).one()
     if request.method == 'POST':
-        if 'user_id' in login_session.keys():
-            if request.form['name']:
-                new_item = Item(name=string.capwords(request.form['name']),
-                                description=request.form['description'],
-                                category=animal, user_id=login_session['user_id'])
-                session.add(new_item)
-                session.commit()
-                return redirect(url_for('displayItemsInCategory',
-                                        category_name=animal.name))
-            else:
-                return "ERROR: You need to enter an item name in the form."
+        if request.form['name']:
+            new_item = Item(name=string.capwords(request.form['name']),
+                            description=request.form['description'],
+                            category=animal, user_id=login_session['user_id'])
+            session.add(new_item)
+            session.commit()
+            return redirect(url_for('displayItemsInCategory',
+                                    category_name=animal.name))
         else:
-            return "ERROR: You need to login to add an item."
+            return "ERROR: You need to enter an item name in the form."
     else:
-        if 'user_id' not in login_session.keys():
-            return redirect(url_for('login'))
-        else:
-            user_id = login_session['user_id']
-            return render_template('additem.html', category=animal,
-                                   user_id=user_id)
+        user_id = login_session['user_id']
+        return render_template('additem.html', category=animal,
+                               user_id=user_id)
 
 
 # This lets you see the details of an item.
@@ -147,6 +158,7 @@ def displayItemDetails(category_name, item_name):
 # of the item.
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
            methods=['POST', 'GET'])
+@login_required
 def editItemDetails(category_name, item_name):
     """
     This handles opens the edit item html page when a GET request is received
@@ -157,10 +169,12 @@ def editItemDetails(category_name, item_name):
     category_name = string.capwords(category_name)
     item_name = string.capwords(item_name)
     animal = session.query(Category).filter_by(name=category_name).one()
-    item = session.query(Item).filter_by(name=item_name, category=animal).one()
-    if request.method == 'POST':
-        if (('user_id' in login_session.keys()) and
-                (login_session['user_id'] == item.user_id)):
+    item = session.query(Item).filter_by(name=item_name,
+                                         category=animal).one()
+    if login_session['user_id'] != item.user_id:
+        return redirect(url_for('login'))
+    else:
+        if request.method == 'POST':
             if request.form['name']:
                 item.name = string.capwords(request.form['name'])
             if request.form['description']:
@@ -170,21 +184,20 @@ def editItemDetails(category_name, item_name):
             return redirect(url_for('displayItemDetails',
                                     category_name=animal.name,
                                     item_name=item.name))
-    else:
-        if 'user_id' not in login_session.keys():
-            return redirect(url_for('login'))
-        elif login_session['user_id'] != item.user_id:
-            return redirect(url_for('login'))
         else:
-            user_id = login_session['user_id']
             return render_template('edititem.html', category=animal,
-                                   item=item, user_id=user_id)
+                                   item=item,
+                                   user_id=login_session['user_id'])
+
+
+
 
 
 # This lets you delete an item if you are logged in as the creator
 # of the item.
 @app.route('/catalog/<string:category_name>/<string:item_name>/delete/',
            methods=['POST', 'GET'])
+@login_required
 def deleteItem(category_name, item_name):
     """
     This handler opens the delete item html page when a GET request is received
@@ -196,18 +209,14 @@ def deleteItem(category_name, item_name):
     item_name = string.capwords(item_name)
     animal = session.query(Category).filter_by(name=category_name).one()
     item = session.query(Item).filter_by(name=item_name, category=animal).one()
-    if request.method == 'POST':
-        if (('user_id' in login_session.keys()) and
-                (login_session['user_id'] == item.user_id)):
+    if login_session['user_id'] != item.user_id:
+        return redirect(url_for('login'))
+    else:
+        if request.method == 'POST':
             session.delete(item)
             session.commit()
             return redirect(url_for('displayItemsInCategory',
                                     category_name=animal.name))
-    else:
-        if 'user_id' not in login_session.keys():
-            return redirect(url_for('login'))
-        elif login_session['user_id'] != item.user_id:
-            return redirect(url_for('login'))
         else:
             user_id = login_session['user_id']
             return render_template('deleteitem.html', category=animal,
@@ -311,6 +320,17 @@ def gconnect():
     if not user_id:
         user_id = createUser(login_session)
     login_session['user_id'] = user_id
+
+    output = ''
+    output += '<h1>Welcome, '
+    output += login_session['username']
+    output += '!</h1>'
+    output += '<img src="'
+    output += login_session['picture']
+    output += ' " style = "width: 300px; height: 300px;border-radius: ' \
+              '150px;-webkit-border-radius: 150px;-moz-border-radius:150px;">'
+    print "done!"
+    return output
 
 
 # This lets the user log out.
